@@ -10,13 +10,13 @@ import javax.inject.Inject
 class BuildingDatabase @Inject constructor(
 	firestore: FirebaseFirestore
 ) {
-	private val buildingCollection = firestore.collection(BUILDING_COLLECTION)
+	val buildingCollection = firestore.collection(BUILDING_COLLECTION)
 
 	suspend fun getAllBuildings(): Resource<List<Building>> {
 		return try {
 			Resource.success(buildingCollection.get().await().toObjects(Building::class.java))
 		} catch (e: Exception) {
-			Resource.error("Failed to load data", null)
+			Resource.error(e.message ?: "Failed to load data", null)
 		}
 	}
 }

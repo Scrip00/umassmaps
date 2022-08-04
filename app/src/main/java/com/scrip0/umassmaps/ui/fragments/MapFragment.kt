@@ -1,7 +1,6 @@
 package com.scrip0.umassmaps.ui.fragments
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -14,6 +13,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.data.geojson.GeoJsonLayer
 import com.scrip0.umassmaps.R
+import com.scrip0.umassmaps.data.entities.Building
 import com.scrip0.umassmaps.other.Constants.MAP_ZOOM
 import com.scrip0.umassmaps.other.Status
 import com.scrip0.umassmaps.ui.viewmodels.MainViewModel
@@ -45,18 +45,32 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			when (result.status) {
 				Status.SUCCESS -> {
 					mapProgressBar.isVisible = false
-					Log.d("LOLLMAO17", "HELPME")
+					addAllMarkers(result?.data)
 				}
-				Status.ERROR -> Toast.makeText(
-					context,
-					"Cannot load the data: ${result.message}",
-					Toast.LENGTH_LONG
-				).show()
+				Status.ERROR -> {
+					mapProgressBar.isVisible = false
+					Toast.makeText(
+						context,
+						"Cannot load the data: ${result.message}",
+						Toast.LENGTH_LONG
+					).show()
+				}
 				Status.LOADING -> {
 					mapProgressBar.isVisible = true
-					Log.d("LOLLMAO17", "HELPME")
 				}
 			}
+		}
+	}
+
+	private fun addAllMarkers(list: List<Building>?) {
+		map?.clear()
+		addLocationBorders()
+		list?.forEach { building ->
+			map?.addMarker(
+				MarkerOptions()
+					.position(LatLng(building.latitude, building.longitude))
+					.title(building.name)
+			)
 		}
 	}
 

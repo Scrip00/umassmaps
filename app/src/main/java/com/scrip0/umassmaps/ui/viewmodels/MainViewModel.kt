@@ -1,9 +1,11 @@
 package com.scrip0.umassmaps.ui.viewmodels
 
+import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.ktx.toObject
 import com.scrip0.umassmaps.data.entities.Building
 import com.scrip0.umassmaps.data.remote.BuildingDatabase
 import com.scrip0.umassmaps.other.Resource
@@ -21,12 +23,31 @@ class MainViewModel @Inject constructor(
 
 	init {
 		loadBuildings()
+		subscribeToReaTimeUpdates()
 	}
 
 	private fun loadBuildings() {
 		_buildingsLiveData.postValue(Resource.loading(null))
 		viewModelScope.launch {
 			_buildingsLiveData.postValue(buildingDatabase.getAllBuildings())
+		}
+	}
+
+	private fun subscribeToReaTimeUpdates() {
+		val buildingCollection = buildingDatabase.buildingCollection
+		buildingCollection.addSnapshotListener { value, error ->
+			error?.let {
+				Resource.error(it.message ?: "Failed to load data", null)
+				return@addSnapshotListener
+			}
+			value?.let {
+				val list = mutableListOf<Building>()
+				for (doc in it) {
+					val building = doc.toObject<Building>()
+					list.add(building)
+				}
+				_buildingsLiveData.postValue(Resource.success(list))
+			}
 		}
 	}
 }
