@@ -12,6 +12,7 @@ import androidx.fragment.app.viewModels
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.collections.GroundOverlayManager
 import com.google.maps.android.collections.MarkerManager
 import com.google.maps.android.collections.PolygonManager
@@ -42,7 +43,6 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 
 		mapView.getMapAsync {
 			map = it
-//			addLocationBorders()
 			moveCameraToLocation()
 			subscribeToObservers()
 		}
@@ -77,17 +77,35 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 	@SuppressLint("PotentialBehaviorOverride")
 	private fun addAllMarkers(list: List<Building>?) {
 		map?.clear()
-//		addLocationBorders()
-		val markerManager = MarkerManager(map);
-		val groundOverlayManager = GroundOverlayManager(map!!);
-		val polygonManager = PolygonManager(map);
-		val polylineManager = PolylineManager(map!!);
+
+		val markerManager = MarkerManager(map)
+		val groundOverlayManager = GroundOverlayManager(map!!)
+		val polygonManager = PolygonManager(map)
+		val polylineManager = PolylineManager(map!!)
+
+		val border = GeoJsonLayer(
+			map, R.raw.umass_borders, context, markerManager,
+			polygonManager,
+			polylineManager,
+			groundOverlayManager
+		)
+		border.defaultPolygonStyle.apply {
+			strokeColor = ContextCompat.getColor(requireContext(), R.color.vine)
+			strokeWidth = 10f
+			zIndex = 1F
+		}
+		border.addLayerToMap()
+		border.setOnFeatureClickListener {
+			clearClickedFeatures()
+		}
+
 		list?.forEach { building ->
-//			map?.addMarker(
-//				MarkerOptions()
-//					.position(LatLng(building.latitude, building.longitude))
-//					.title(building.name)
-//			)?.tag = building.id
+			val marker = map?.addMarker(
+				MarkerOptions()
+					.position(LatLng(building.latitude, building.longitude))
+					.title(building.name)
+					.zIndex(2F)
+			)
 			val layer = GeoJsonLayer(
 				map,
 				JSONObject(building.shape),
@@ -98,21 +116,16 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			)
 			layer.defaultPolygonStyle.apply {
 				strokeColor = Color.BLACK
-				strokeWidth = 3f
+				strokeWidth = 4f
 				fillColor = Color.GRAY
-				zIndex = 2F
+				zIndex = 3F
 			}
 			layer.addLayerToMap()
 			layer.setOnFeatureClickListener {
-
 				layer.defaultPolygonStyle.apply {
 					fillColor = Color.RED
 				}
-				Toast.makeText(
-					context,
-					"Clicked",
-					Toast.LENGTH_LONG
-				).show()
+				clearClickedFeatures()
 				clicked.add(layer)
 			}
 		}
@@ -120,20 +133,6 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		map?.setOnMapClickListener {
 			clearClickedFeatures()
 		}
-	}
-
-	private fun addLocationBorders() {
-		val layer = GeoJsonLayer(map, R.raw.umass_borders, context)
-		layer.defaultPolygonStyle.apply {
-			strokeColor = ContextCompat.getColor(requireContext(), R.color.vine)
-			strokeWidth = 10f
-			zIndex = 3F
-		}
-//		layer.setOnFeatureClickListener {
-//			Toast.makeText(context, "CLICKEDDDD", Toast.LENGTH_LONG).show()
-//			clearClickedFeatures()
-//		}
-		layer.addLayerToMap()
 	}
 
 	private fun clearClickedFeatures() {
@@ -158,10 +157,6 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 	override fun onResume() {
 		super.onResume()
 		mapView?.onResume()
-		mapView.getMapAsync {
-			map = it
-//			map?.clear()
-		}
 	}
 
 	override fun onStart() {
