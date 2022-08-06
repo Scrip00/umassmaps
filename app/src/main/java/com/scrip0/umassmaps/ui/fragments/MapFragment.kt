@@ -14,6 +14,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.maps.android.collections.GroundOverlayManager
 import com.google.maps.android.collections.MarkerManager
 import com.google.maps.android.collections.PolygonManager
@@ -28,6 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_map.*
 import org.json.JSONObject
 
+
 @AndroidEntryPoint
 class MapFragment : Fragment(R.layout.fragment_map) {
 
@@ -35,12 +37,17 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 
 	private val viewModel: MainViewModel by viewModels()
 
-	private var clicked = mutableListOf<GeoJsonLayer>()
+	private var clicked: GeoJsonLayer? = null
+
+	private lateinit var bottomSheetBehavior: BottomSheetBehavior<View>
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
+		bottomSheetBehavior = BottomSheetBehavior.from(buildingInfoSheet)
 
 		mapView.onCreate(savedInstanceState)
+
+		setupBottomSheet()
 
 		mapView.getMapAsync {
 			map = it
@@ -49,12 +56,55 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		}
 	}
 
+	private fun setupBottomSheet() {
+		bottomSheetBehavior.addBottomSheetCallback(object :
+			BottomSheetBehavior.BottomSheetCallback() {
+			override fun onStateChanged(bottomSheet: View, newState: Int) {
+				when (newState) {
+					BottomSheetBehavior.STATE_EXPANDED -> {
+						showView(appBar, getActionBarSize())
+					}
+					BottomSheetBehavior.STATE_COLLAPSED -> {
+						hideView(appBar)
+					}
+					BottomSheetBehavior.STATE_HIDDEN -> {
+						hideView(appBar)
+						onBuildingClicked()
+					}
+				}
+			}
+
+			override fun onSlide(bottomSheet: View, slideOffset: Float) {
+			}
+
+			private fun getActionBarSize(): Int {
+				val array =
+					requireContext().theme.obtainStyledAttributes(intArrayOf(android.R.attr.actionBarSize))
+				return array.getDimension(0, 0f).toInt()
+			}
+
+			private fun hideView(view: View) {
+				val params = view.layoutParams
+				params.height = 0
+				view.layoutParams = params
+			}
+
+			private fun showView(view: View, size: Int) {
+				val params = view.layoutParams
+				params.height = size
+				view.layoutParams = params
+			}
+		})
+
+		bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+	}
+
 	private fun subscribeToObservers() {
 		viewModel.buildingsLiveData.observe(viewLifecycleOwner) { result ->
 			when (result.status) {
 				Status.SUCCESS -> {
 					mapProgressBar.isVisible = false
-					addAllMarkers(result?.data)
+					addAllBuildings(result?.data)
 				}
 				Status.ERROR -> {
 					mapProgressBar.isVisible = false
@@ -76,7 +126,7 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 	}
 
 	@SuppressLint("PotentialBehaviorOverride")
-	private fun addAllMarkers(list: List<Building>?) {
+	private fun addAllBuildings(list: List<Building>?) {
 		map?.clear()
 
 		val markerManager = MarkerManager(map)
@@ -99,10 +149,10 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		}
 		border.addLayerToMap()
 		border.setOnFeatureClickListener {
-			clearClickedFeatures()
+			onBuildingClicked()
 		}
 
-		var hashMap = HashMap<Marker, GeoJsonLayer>()
+		val hashMap = HashMap<Marker, GeoJsonLayer>()
 
 		list?.forEach { building ->
 			val marker = markerCollection.addMarker(
@@ -129,39 +179,46 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			layer.addLayerToMap()
 			layer.setOnFeatureClickListener {
 				marker.showInfoWindow()
-				layer.defaultPolygonStyle.apply {
-					fillColor = Color.RED
-				}
-				clearClickedFeatures()
-				clicked.add(layer)
+				loadBottomSheet(building)
+				onBuildingClicked(layer)
 			}
 		}
 
 		markerCollection.setOnMarkerClickListener {
 			val layer = hashMap[it]
 			layer?.apply {
-				defaultPolygonStyle.apply {
-					fillColor = Color.RED
-				}
-				clearClickedFeatures()
-				clicked.add(layer)
+				onBuildingClicked(layer)
 			}
 			false
 		}
 
 		map?.setOnMapClickListener {
-			clearClickedFeatures()
+			onBuildingClicked()
 		}
 	}
 
-	private fun clearClickedFeatures() {
-		while (clicked.isNotEmpty()) {
-			val layer = clicked[0]
-			clicked.removeAt(0)
-			layer.defaultPolygonStyle.apply {
+	private fun onBuildingClicked(layer: GeoJsonLayer? = null) {
+		if (clicked?.equals(layer) == true) return
+
+		clicked?.apply {
+			defaultPolygonStyle.apply {
 				fillColor = Color.GRAY
 			}
 		}
+		clicked = layer
+		clicked?.apply {
+			defaultPolygonStyle.apply {
+				fillColor = Color.RED
+			}
+		}
+	}
+
+	private fun loadBottomSheet(building: Building) {
+		if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_HIDDEN)
+			bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+
+		tvAppBar.text = building.name
+		tvSheet.text = building.name
 	}
 
 	private fun moveCameraToLocation(pos: LatLng = LatLng(42.38695, -72.5231)) {
