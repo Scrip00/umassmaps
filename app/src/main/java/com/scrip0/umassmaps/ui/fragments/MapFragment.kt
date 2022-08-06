@@ -12,6 +12,7 @@ import androidx.fragment.app.viewModels
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.collections.GroundOverlayManager
 import com.google.maps.android.collections.MarkerManager
@@ -83,6 +84,8 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		val polygonManager = PolygonManager(map)
 		val polylineManager = PolylineManager(map!!)
 
+		val markerCollection = markerManager.newCollection()
+
 		val border = GeoJsonLayer(
 			map, R.raw.umass_borders, context, markerManager,
 			polygonManager,
@@ -99,8 +102,10 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			clearClickedFeatures()
 		}
 
+		var hashMap = HashMap<Marker, GeoJsonLayer>()
+
 		list?.forEach { building ->
-			val marker = map?.addMarker(
+			val marker = markerCollection.addMarker(
 				MarkerOptions()
 					.position(LatLng(building.latitude, building.longitude))
 					.title(building.name)
@@ -114,6 +119,7 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 				polylineManager,
 				groundOverlayManager
 			)
+			hashMap[marker] = layer
 			layer.defaultPolygonStyle.apply {
 				strokeColor = Color.BLACK
 				strokeWidth = 4f
@@ -122,12 +128,25 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			}
 			layer.addLayerToMap()
 			layer.setOnFeatureClickListener {
+				marker.showInfoWindow()
 				layer.defaultPolygonStyle.apply {
 					fillColor = Color.RED
 				}
 				clearClickedFeatures()
 				clicked.add(layer)
 			}
+		}
+
+		markerCollection.setOnMarkerClickListener {
+			val layer = hashMap[it]
+			layer?.apply {
+				defaultPolygonStyle.apply {
+					fillColor = Color.RED
+				}
+				clearClickedFeatures()
+				clicked.add(layer)
+			}
+			false
 		}
 
 		map?.setOnMapClickListener {
