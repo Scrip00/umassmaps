@@ -1,5 +1,7 @@
 package com.scrip0.umassmaps.ui.fragments
 
+import android.annotation.SuppressLint
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -10,7 +12,10 @@ import androidx.fragment.app.viewModels
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.maps.android.collections.GroundOverlayManager
+import com.google.maps.android.collections.MarkerManager
+import com.google.maps.android.collections.PolygonManager
+import com.google.maps.android.collections.PolylineManager
 import com.google.maps.android.data.geojson.GeoJsonLayer
 import com.scrip0.umassmaps.R
 import com.scrip0.umassmaps.data.entities.Building
@@ -19,6 +24,7 @@ import com.scrip0.umassmaps.other.Status
 import com.scrip0.umassmaps.ui.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_map.*
+import org.json.JSONObject
 
 @AndroidEntryPoint
 class MapFragment : Fragment(R.layout.fragment_map) {
@@ -27,6 +33,8 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 
 	private val viewModel: MainViewModel by viewModels()
 
+	private var clicked = mutableListOf<GeoJsonLayer>()
+
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
 
@@ -34,7 +42,7 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 
 		mapView.getMapAsync {
 			map = it
-			addLocationBorders()
+//			addLocationBorders()
 			moveCameraToLocation()
 			subscribeToObservers()
 		}
@@ -60,17 +68,57 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 				}
 			}
 		}
+
+		viewModel.currentBuilding.observe(viewLifecycleOwner) { building ->
+			moveCameraToLocation(LatLng(building.latitude, building.longitude))
+		}
 	}
 
+	@SuppressLint("PotentialBehaviorOverride")
 	private fun addAllMarkers(list: List<Building>?) {
 		map?.clear()
-		addLocationBorders()
+//		addLocationBorders()
+		val markerManager = MarkerManager(map);
+		val groundOverlayManager = GroundOverlayManager(map!!);
+		val polygonManager = PolygonManager(map);
+		val polylineManager = PolylineManager(map!!);
 		list?.forEach { building ->
-			map?.addMarker(
-				MarkerOptions()
-					.position(LatLng(building.latitude, building.longitude))
-					.title(building.name)
+//			map?.addMarker(
+//				MarkerOptions()
+//					.position(LatLng(building.latitude, building.longitude))
+//					.title(building.name)
+//			)?.tag = building.id
+			val layer = GeoJsonLayer(
+				map,
+				JSONObject(building.shape),
+				markerManager,
+				polygonManager,
+				polylineManager,
+				groundOverlayManager
 			)
+			layer.defaultPolygonStyle.apply {
+				strokeColor = Color.BLACK
+				strokeWidth = 3f
+				fillColor = Color.GRAY
+				zIndex = 2F
+			}
+			layer.addLayerToMap()
+			layer.setOnFeatureClickListener {
+
+				layer.defaultPolygonStyle.apply {
+					fillColor = Color.RED
+				}
+				Toast.makeText(
+					context,
+					"Clicked",
+					Toast.LENGTH_LONG
+				).show()
+				clicked.add(layer)
+			}
+		}
+
+		map?.setOnMapClickListener {
+			clearClickedFeatures()
 		}
 	}
 
@@ -79,20 +127,29 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		layer.defaultPolygonStyle.apply {
 			strokeColor = ContextCompat.getColor(requireContext(), R.color.vine)
 			strokeWidth = 10f
+			zIndex = 3F
 		}
+//		layer.setOnFeatureClickListener {
+//			Toast.makeText(context, "CLICKEDDDD", Toast.LENGTH_LONG).show()
+//			clearClickedFeatures()
+//		}
 		layer.addLayerToMap()
-		val sydney = LatLng(100.0, 0.0)
-		map?.addMarker(
-			MarkerOptions()
-				.position(sydney)
-				.title("Marker in Sydney")
-		)
 	}
 
-	private fun moveCameraToLocation() {
+	private fun clearClickedFeatures() {
+		while (clicked.isNotEmpty()) {
+			val layer = clicked[0]
+			clicked.removeAt(0)
+			layer.defaultPolygonStyle.apply {
+				fillColor = Color.GRAY
+			}
+		}
+	}
+
+	private fun moveCameraToLocation(pos: LatLng = LatLng(42.38695, -72.5231)) {
 		map?.animateCamera(
 			CameraUpdateFactory.newLatLngZoom(
-				LatLng(42.38695, -72.5231),
+				pos,
 				MAP_ZOOM
 			)
 		)

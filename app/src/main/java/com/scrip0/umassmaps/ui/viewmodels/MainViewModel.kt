@@ -1,6 +1,5 @@
 package com.scrip0.umassmaps.ui.viewmodels
 
-import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -20,6 +19,8 @@ class MainViewModel @Inject constructor(
 
 	private val _buildingsLiveData = MutableLiveData<Resource<List<Building>>>()
 	val buildingsLiveData: LiveData<Resource<List<Building>>> = _buildingsLiveData
+
+	val currentBuilding = MutableLiveData<Building>()
 
 	init {
 		loadBuildings()

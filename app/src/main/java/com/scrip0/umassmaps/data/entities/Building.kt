@@ -7,5 +7,6 @@ data class Building(
 	val name: String = "",
 	val imageUrl: String = "",
 	val description: String = "",
-	val type: Int = 0
+	val type: Int = 0,
+	val shape: String = ""
 )
