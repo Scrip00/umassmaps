@@ -10,3 +10,12 @@ data class Building(
 	val type: Int = 0,
 	val shape: String = ""
 )
+
+object Type {
+	const val DORM = 0
+	const val STUDY = 1
+	const val LIBRARY = 2
+	const val SPORT = 3
+	const val PARKING = 4
+	const val FOOD = 5
+}

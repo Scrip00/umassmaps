@@ -3,12 +3,14 @@ package com.scrip0.umassmaps.ui.fragments
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.bumptech.glide.Glide
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
@@ -43,6 +45,7 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
+
 		bottomSheetBehavior = BottomSheetBehavior.from(buildingInfoSheet)
 
 		mapView.onCreate(savedInstanceState)
@@ -57,42 +60,18 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 	}
 
 	private fun setupBottomSheet() {
+		appBar.alpha = 0f
 		bottomSheetBehavior.addBottomSheetCallback(object :
 			BottomSheetBehavior.BottomSheetCallback() {
 			override fun onStateChanged(bottomSheet: View, newState: Int) {
-				when (newState) {
-					BottomSheetBehavior.STATE_EXPANDED -> {
-						showView(appBar, getActionBarSize())
-					}
-					BottomSheetBehavior.STATE_COLLAPSED -> {
-						hideView(appBar)
-					}
-					BottomSheetBehavior.STATE_HIDDEN -> {
-						hideView(appBar)
-						onBuildingClicked()
-					}
+				if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+					onBuildingClicked()
 				}
 			}
 
 			override fun onSlide(bottomSheet: View, slideOffset: Float) {
-			}
-
-			private fun getActionBarSize(): Int {
-				val array =
-					requireContext().theme.obtainStyledAttributes(intArrayOf(android.R.attr.actionBarSize))
-				return array.getDimension(0, 0f).toInt()
-			}
-
-			private fun hideView(view: View) {
-				val params = view.layoutParams
-				params.height = 0
-				view.layoutParams = params
-			}
-
-			private fun showView(view: View, size: Int) {
-				val params = view.layoutParams
-				params.height = size
-				view.layoutParams = params
+				appBar.alpha = slideOffset
+				ivBuilding.y = appBar.height * slideOffset
 			}
 		})
 
@@ -217,6 +196,7 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_HIDDEN)
 			bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
 
+		Glide.with(requireContext()).load(building.imageUrl).into(ivBuilding)
 		tvAppBar.text = building.name
 		tvSheet.text = building.name
 	}

@@ -1,5 +1,6 @@
 package com.scrip0.umassmaps.ui.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -23,32 +24,11 @@ class MainViewModel @Inject constructor(
 	val currentBuilding = MutableLiveData<Building>()
 
 	init {
-		loadBuildings()
 		subscribeToReaTimeUpdates()
 	}
 
-	private fun loadBuildings() {
-		_buildingsLiveData.postValue(Resource.loading(null))
-		viewModelScope.launch {
-			_buildingsLiveData.postValue(buildingDatabase.getAllBuildings())
-		}
-	}
-
 	private fun subscribeToReaTimeUpdates() {
-		val buildingCollection = buildingDatabase.buildingCollection
-		buildingCollection.addSnapshotListener { value, error ->
-			error?.let {
-				Resource.error(it.message ?: "Failed to load data", null)
-				return@addSnapshotListener
-			}
-			value?.let {
-				val list = mutableListOf<Building>()
-				for (doc in it) {
-					val building = doc.toObject<Building>()
-					list.add(building)
-				}
-				_buildingsLiveData.postValue(Resource.success(list))
-			}
-		}
+		_buildingsLiveData.postValue(Resource.loading(null))
+		buildingDatabase.subscribeToReaTimeUpdates(_buildingsLiveData)
 	}
 }
