@@ -18,14 +18,20 @@ class BuildingRepository @Inject constructor(
 		updateData(list)
 	}
 
-	fun subscribeToReaTimeUpdates(buildingsLiveData: MutableLiveData<Resource<List<Building>>>) =
-		remoteBuildingDatabase.subscribeToReaTimeUpdates(buildingsLiveData, dataUpdated)
+	fun subscribeToReaTimeUpdates() =
+		remoteBuildingDatabase.subscribeToReaTimeUpdates(dataUpdated)
 
 	suspend fun upsertBuildingLocal(building: Building) = localBuildingDao.upsertBuilding(building)
 
 	suspend fun deleteBuildingLocal(building: Building) = localBuildingDao.deleteBuilding(building)
 
-	suspend fun getAllBuildings() = Resource.success(localBuildingDao.getAllBuildings())
+	suspend fun getAllBuildings(buildingsLiveData: MutableLiveData<Resource<List<Building>>>) {
+		CoroutineScope(Dispatchers.IO).launch {
+			localBuildingDao.getAllBuildings().collect { data ->
+				buildingsLiveData.postValue(Resource.success(data))
+			}
+		}
+	}
 
 	private fun updateData(list: List<Building>) {
 		CoroutineScope(Dispatchers.IO).launch {

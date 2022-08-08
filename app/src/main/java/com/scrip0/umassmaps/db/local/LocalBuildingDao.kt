@@ -1,8 +1,8 @@
 package com.scrip0.umassmaps.db.local
 
-import androidx.lifecycle.MutableLiveData
 import androidx.room.*
 import com.scrip0.umassmaps.db.entities.Building
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LocalBuildingDao {
@@ -20,5 +20,5 @@ interface LocalBuildingDao {
 	suspend fun deleteMissingBuildings(list: List<String>)
 
 	@Query("SELECT * FROM building_table")
-	suspend fun getAllBuildings(): List<Building>
+	fun getAllBuildings(): Flow<List<Building>>
 }

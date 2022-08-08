@@ -15,7 +15,6 @@ class RemoteBuildingDatabase @Inject constructor(
 	private val buildingCollection = firestore.collection(BUILDING_COLLECTION)
 
 	fun subscribeToReaTimeUpdates(
-		buildingsLiveData: MutableLiveData<Resource<List<Building>>>,
 		dataUpdated: (List<Building>) -> Unit
 	) {
 		buildingCollection.addSnapshotListener { value, error ->
@@ -29,7 +28,6 @@ class RemoteBuildingDatabase @Inject constructor(
 					val building = doc.toObject<Building>()
 					list.add(building)
 				}
-				buildingsLiveData.postValue(Resource.success(list))
 				dataUpdated(list)
 			}
 		}

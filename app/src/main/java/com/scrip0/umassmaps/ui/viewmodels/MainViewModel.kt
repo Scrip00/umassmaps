@@ -31,12 +31,9 @@ class MainViewModel @Inject constructor(
 
 	private fun subscribeToReaTimeUpdates() {
 		_buildingsLiveData.postValue(Resource.loading(null))
+		buildingRepository.subscribeToReaTimeUpdates()
 		viewModelScope.launch {
-			buildingRepository.subscribeToReaTimeUpdates(_buildingsLiveData)
-			if (_buildingsLiveData.value?.status == Status.ERROR) {
-				_buildingsLiveData.postValue(buildingRepository.getAllBuildings())
-			}
-			// TODO handle connection changes
+			buildingRepository.getAllBuildings(_buildingsLiveData)
 		}
 	}
 }
