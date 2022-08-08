@@ -1,4 +1,13 @@
 <resources>
     <string name="app_name">Umass Maps</string>
     <string name="title_activity_maps">MapsActivity</string>
+
+    <string-array name="filter_options">
+        <item>Dorms</item>
+        <item>Study places</item>
+        <item>Libraries</item>
+        <item>Food</item>
+        <item>Sport</item>
+        <item>Parking</item>
+    </string-array>
 </resources>

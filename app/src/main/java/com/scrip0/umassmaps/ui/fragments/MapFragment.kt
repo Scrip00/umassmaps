@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.widget.AdapterView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -16,6 +17,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
+import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.maps.android.collections.GroundOverlayManager
 import com.google.maps.android.collections.MarkerManager
 import com.google.maps.android.collections.PolygonManager
@@ -23,6 +26,7 @@ import com.google.maps.android.collections.PolylineManager
 import com.google.maps.android.data.geojson.GeoJsonLayer
 import com.scrip0.umassmaps.R
 import com.scrip0.umassmaps.db.entities.Building
+import com.scrip0.umassmaps.db.entities.Type
 import com.scrip0.umassmaps.other.Constants.MAP_ZOOM
 import com.scrip0.umassmaps.other.Status
 import com.scrip0.umassmaps.ui.viewmodels.MainViewModel
@@ -56,15 +60,56 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			moveCameraToLocation()
 			subscribeToObservers()
 		}
+
+		spFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+			override fun onItemSelected(p0: AdapterView<*>?, p1: View?, pos: Int, p3: Long) {
+				when (pos) {
+					0 -> {
+						viewModel.sortBuildings(Type.DORM)
+						viewModel.sortType = Type.DORM
+					}
+					1 -> {
+						viewModel.sortBuildings(Type.STUDY)
+						viewModel.sortType = Type.STUDY
+					}
+					2 -> {
+						viewModel.sortBuildings(Type.LIBRARY)
+						viewModel.sortType = Type.LIBRARY
+					}
+					3 -> {
+						viewModel.sortBuildings(Type.FOOD)
+						viewModel.sortType = Type.FOOD
+					}
+					4 -> {
+						viewModel.sortBuildings(Type.SPORT)
+						viewModel.sortType = Type.SPORT
+					}
+					5 -> {
+						viewModel.sortBuildings(Type.PARKING)
+						viewModel.sortType = Type.PARKING
+					}
+				}
+			}
+
+			override fun onNothingSelected(p0: AdapterView<*>?) {
+				TODO("Not yet implemented")
+			}
+
+		}
 	}
 
 	private fun setupBottomSheet() {
 		appBar.alpha = 0f
+		appBarLayout.visibility = View.GONE
 		bottomSheetBehavior.addBottomSheetCallback(object :
 			BottomSheetBehavior.BottomSheetCallback() {
 			override fun onStateChanged(bottomSheet: View, newState: Int) {
-				if (newState == BottomSheetBehavior.STATE_HIDDEN) {
-					onBuildingClicked()
+				when (newState) {
+					STATE_HIDDEN -> {
+						appBarLayout.visibility = View.GONE
+						onBuildingClicked()
+					}
+					STATE_COLLAPSED -> appBarLayout.visibility = View.VISIBLE
 				}
 			}
 

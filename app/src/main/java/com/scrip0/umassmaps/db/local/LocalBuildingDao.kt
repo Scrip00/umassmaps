@@ -2,6 +2,7 @@ package com.scrip0.umassmaps.db.local
 
 import androidx.room.*
 import com.scrip0.umassmaps.db.entities.Building
+import com.scrip0.umassmaps.db.entities.Type
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -21,4 +22,7 @@ interface LocalBuildingDao {
 
 	@Query("SELECT * FROM building_table")
 	fun getAllBuildings(): Flow<List<Building>>
+
+	@Query("SELECT * FROM building_table WHERE type=:sortType")
+	suspend fun getBuildingsSortedByType(sortType: Int): List<Building>
 }

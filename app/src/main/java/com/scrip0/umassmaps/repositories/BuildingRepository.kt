@@ -2,6 +2,7 @@ package com.scrip0.umassmaps.repositories
 
 import androidx.lifecycle.MutableLiveData
 import com.scrip0.umassmaps.db.entities.Building
+import com.scrip0.umassmaps.db.entities.Type
 import com.scrip0.umassmaps.db.local.LocalBuildingDao
 import com.scrip0.umassmaps.db.remote.RemoteBuildingDatabase
 import com.scrip0.umassmaps.other.Resource
@@ -39,4 +40,7 @@ class BuildingRepository @Inject constructor(
 			localBuildingDao.upsertAllBuildings(list)
 		}
 	}
+
+	suspend fun getBuildingsSortedByType(sortType: Int) =
+		Resource.success(localBuildingDao.getBuildingsSortedByType(sortType))
 }
