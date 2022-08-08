@@ -5,11 +5,14 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
+import android.widget.SearchView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.room.Query
 import com.bumptech.glide.Glide
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -25,13 +28,20 @@ import com.google.maps.android.collections.PolygonManager
 import com.google.maps.android.collections.PolylineManager
 import com.google.maps.android.data.geojson.GeoJsonLayer
 import com.scrip0.umassmaps.R
+import com.scrip0.umassmaps.adapters.SearchResultsAdapter
 import com.scrip0.umassmaps.db.entities.Building
 import com.scrip0.umassmaps.db.entities.Type
 import com.scrip0.umassmaps.other.Constants.MAP_ZOOM
+import com.scrip0.umassmaps.other.Constants.SEARCH_DELAY
 import com.scrip0.umassmaps.other.Status
 import com.scrip0.umassmaps.ui.viewmodels.MainViewModel
+import com.scrip0.umassmaps.utils.SearchUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_map.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 
@@ -92,10 +102,42 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			}
 
 			override fun onNothingSelected(p0: AdapterView<*>?) {
-				TODO("Not yet implemented")
+				viewModel.sortBuildings(null)
+				viewModel.sortType = null
+			}
+		}
+	}
+
+	private fun setupSearch() {
+		val searchResultsAdapter = SearchResultsAdapter()
+		rvSearchResults.apply {
+			adapter = searchResultsAdapter
+			layoutManager = LinearLayoutManager(requireContext())
+		}
+
+		val list = viewModel.buildingsLiveData.value?.data
+		var job: Job? = null
+
+		searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+			override fun onQueryTextSubmit(query: String?): Boolean {
+				search(query)
+				return false
 			}
 
-		}
+			override fun onQueryTextChange(newText: String?): Boolean {
+				job?.cancel()
+				job = MainScope().launch {
+					delay(SEARCH_DELAY)
+					search(newText)
+				}
+				return false
+			}
+
+			fun search(query: String?) {
+				val searchResults = SearchUtils.searchForWordOccurrence(query, list)
+				if (searchResults != null) searchResultsAdapter.submitList(searchResults)
+			}
+		})
 	}
 
 	private fun setupBottomSheet() {
@@ -128,6 +170,7 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 				Status.SUCCESS -> {
 					mapProgressBar.isVisible = false
 					addAllBuildings(result?.data)
+					setupSearch()
 				}
 				Status.ERROR -> {
 					mapProgressBar.isVisible = false

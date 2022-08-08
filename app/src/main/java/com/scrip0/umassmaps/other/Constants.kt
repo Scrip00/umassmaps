@@ -7,5 +7,7 @@ object Constants {
 
 	const val MAP_ZOOM = 15f
 
-	const val RESIDENCE_HALL = 1
+	const val STRING_COMPARISON_PRECISION = 0.4f
+
+	const val SEARCH_DELAY = 500L
 }

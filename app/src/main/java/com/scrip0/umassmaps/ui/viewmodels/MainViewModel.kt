@@ -39,7 +39,7 @@ class MainViewModel @Inject constructor(
 		_buildingsLiveData.postValue(Resource.loading(null))
 		sortType?.let {
 			viewModelScope.launch {
-				_buildingsLiveData.postValue(buildingRepository.getBuildingsSortedByType(sortType!!))
+				_buildingsLiveData.postValue(buildingRepository.getBuildingsSortedByType(sortType))
 			}
 			return
 		}

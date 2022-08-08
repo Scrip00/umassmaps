@@ -14,7 +14,12 @@ data class Building(
 	val description: String = "",
 	val type: Int = 0,
 	val shape: String = ""
-)
+) {
+	override fun equals(other: Any?): Boolean {
+		return super.hashCode() == other.hashCode()
+	}
+}
+
 object Type {
 	const val DORM = 0
 	const val STUDY = 1
