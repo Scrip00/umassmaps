@@ -1,28 +1,23 @@
-package com.scrip0.umassmaps.data.remote
+package com.scrip0.umassmaps.db.remote
 
 import androidx.lifecycle.MutableLiveData
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.toObject
-import com.scrip0.umassmaps.data.entities.Building
+import com.scrip0.umassmaps.db.entities.Building
 import com.scrip0.umassmaps.other.Constants.BUILDING_COLLECTION
 import com.scrip0.umassmaps.other.Resource
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 
-class BuildingDatabase @Inject constructor(
+class RemoteBuildingDatabase @Inject constructor(
 	firestore: FirebaseFirestore
 ) {
 	private val buildingCollection = firestore.collection(BUILDING_COLLECTION)
 
-	suspend fun getAllBuildings(): Resource<List<Building>> {
-		return try {
-			Resource.success(buildingCollection.get().await().toObjects(Building::class.java))
-		} catch (e: Exception) {
-			Resource.error(e.message ?: "Failed to load data", null)
-		}
-	}
-
-	fun subscribeToReaTimeUpdates(_buildingsLiveData: MutableLiveData<Resource<List<Building>>>) {
+	fun subscribeToReaTimeUpdates(
+		buildingsLiveData: MutableLiveData<Resource<List<Building>>>,
+		dataUpdated: (List<Building>) -> Unit
+	) {
 		buildingCollection.addSnapshotListener { value, error ->
 			error?.let {
 				Resource.error(it.message ?: "Failed to load data", null)
@@ -34,7 +29,8 @@ class BuildingDatabase @Inject constructor(
 					val building = doc.toObject<Building>()
 					list.add(building)
 				}
-				_buildingsLiveData.postValue(Resource.success(list))
+				buildingsLiveData.postValue(Resource.success(list))
+				dataUpdated(list)
 			}
 		}
 	}

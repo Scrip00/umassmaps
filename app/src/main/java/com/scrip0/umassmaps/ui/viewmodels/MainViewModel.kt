@@ -1,21 +1,23 @@
 package com.scrip0.umassmaps.ui.viewmodels
 
-import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.firestore.ktx.toObject
-import com.scrip0.umassmaps.data.entities.Building
-import com.scrip0.umassmaps.data.remote.BuildingDatabase
+import com.scrip0.umassmaps.db.entities.Building
 import com.scrip0.umassmaps.other.Resource
+import com.scrip0.umassmaps.other.Status
+import com.scrip0.umassmaps.repositories.BuildingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-	private val buildingDatabase: BuildingDatabase
+	private val buildingRepository: BuildingRepository
 ) : ViewModel() {
 
 	private val _buildingsLiveData = MutableLiveData<Resource<List<Building>>>()
@@ -29,6 +31,12 @@ class MainViewModel @Inject constructor(
 
 	private fun subscribeToReaTimeUpdates() {
 		_buildingsLiveData.postValue(Resource.loading(null))
-		buildingDatabase.subscribeToReaTimeUpdates(_buildingsLiveData)
+		viewModelScope.launch {
+			buildingRepository.subscribeToReaTimeUpdates(_buildingsLiveData)
+			if (_buildingsLiveData.value?.status == Status.ERROR) {
+				_buildingsLiveData.postValue(buildingRepository.getAllBuildings())
+			}
+			// TODO handle connection changes
+		}
 	}
 }

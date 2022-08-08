@@ -1,6 +1,11 @@
-package com.scrip0.umassmaps.data.entities
+package com.scrip0.umassmaps.db.entities
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "building_table")
 data class Building(
+	@PrimaryKey
 	val id: String = "",
 	val latitude: Double = 0.0,
 	val longitude: Double = 0.0,
@@ -10,7 +15,6 @@ data class Building(
 	val type: Int = 0,
 	val shape: String = ""
 )
-
 object Type {
 	const val DORM = 0
 	const val STUDY = 1

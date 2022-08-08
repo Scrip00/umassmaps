@@ -3,7 +3,6 @@ package com.scrip0.umassmaps.ui.fragments
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -23,7 +22,7 @@ import com.google.maps.android.collections.PolygonManager
 import com.google.maps.android.collections.PolylineManager
 import com.google.maps.android.data.geojson.GeoJsonLayer
 import com.scrip0.umassmaps.R
-import com.scrip0.umassmaps.data.entities.Building
+import com.scrip0.umassmaps.db.entities.Building
 import com.scrip0.umassmaps.other.Constants.MAP_ZOOM
 import com.scrip0.umassmaps.other.Status
 import com.scrip0.umassmaps.ui.viewmodels.MainViewModel
