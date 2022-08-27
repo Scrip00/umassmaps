@@ -1,6 +1,8 @@
 package com.scrip0.umassmaps.ui.fragments
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -12,13 +14,10 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.room.Query
 import com.bumptech.glide.Glide
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.*
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
@@ -30,7 +29,13 @@ import com.google.maps.android.data.geojson.GeoJsonLayer
 import com.scrip0.umassmaps.R
 import com.scrip0.umassmaps.adapters.SearchResultsAdapter
 import com.scrip0.umassmaps.db.entities.Building
-import com.scrip0.umassmaps.db.entities.Type
+import com.scrip0.umassmaps.db.entities.Type.DORM
+import com.scrip0.umassmaps.db.entities.Type.FOOD
+import com.scrip0.umassmaps.db.entities.Type.LIBRARY
+import com.scrip0.umassmaps.db.entities.Type.PARKING
+import com.scrip0.umassmaps.db.entities.Type.SPORT
+import com.scrip0.umassmaps.db.entities.Type.STUDY
+import com.scrip0.umassmaps.other.Constants.BUILDINGS_ICON_SIZE
 import com.scrip0.umassmaps.other.Constants.MAP_ZOOM
 import com.scrip0.umassmaps.other.Constants.SEARCH_DELAY
 import com.scrip0.umassmaps.other.Status
@@ -75,28 +80,28 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			override fun onItemSelected(p0: AdapterView<*>?, p1: View?, pos: Int, p3: Long) {
 				when (pos) {
 					0 -> {
-						viewModel.sortBuildings(Type.DORM)
-						viewModel.sortType = Type.DORM
+						viewModel.sortBuildings(DORM)
+						viewModel.sortType = DORM
 					}
 					1 -> {
-						viewModel.sortBuildings(Type.STUDY)
-						viewModel.sortType = Type.STUDY
+						viewModel.sortBuildings(STUDY)
+						viewModel.sortType = STUDY
 					}
 					2 -> {
-						viewModel.sortBuildings(Type.LIBRARY)
-						viewModel.sortType = Type.LIBRARY
+						viewModel.sortBuildings(LIBRARY)
+						viewModel.sortType = LIBRARY
 					}
 					3 -> {
-						viewModel.sortBuildings(Type.FOOD)
-						viewModel.sortType = Type.FOOD
+						viewModel.sortBuildings(FOOD)
+						viewModel.sortType = FOOD
 					}
 					4 -> {
-						viewModel.sortBuildings(Type.SPORT)
-						viewModel.sortType = Type.SPORT
+						viewModel.sortBuildings(SPORT)
+						viewModel.sortType = SPORT
 					}
 					5 -> {
-						viewModel.sortBuildings(Type.PARKING)
-						viewModel.sortType = Type.PARKING
+						viewModel.sortBuildings(PARKING)
+						viewModel.sortType = PARKING
 					}
 				}
 			}
@@ -161,7 +166,7 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			}
 		})
 
-		bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+		bottomSheetBehavior.state = STATE_HIDDEN
 	}
 
 	private fun subscribeToObservers() {
@@ -219,14 +224,16 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		}
 
 		val hashMap = HashMap<Marker, GeoJsonLayer>()
-
+		val markerIdMap = HashMap<String, String>()
 		list?.forEach { building ->
 			val marker = markerCollection.addMarker(
 				MarkerOptions()
-					.position(LatLng(building.latitude, building.longitude))
+					.position(LatLng(building.latitude - 0.00003, building.longitude))
 					.title(building.name)
 					.zIndex(2F)
+					.icon(getBuildingIcon(building.type))
 			)
+			markerIdMap[marker.id] = building.id
 			val layer = GeoJsonLayer(
 				map,
 				JSONObject(building.shape),
@@ -254,6 +261,9 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			val layer = hashMap[it]
 			layer?.apply {
 				onBuildingClicked(layer)
+				loadBottomSheet(list?.find { building ->
+					building.id == markerIdMap[it.id]
+				})
 			}
 			false
 		}
@@ -261,6 +271,39 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		map?.setOnMapClickListener {
 			onBuildingClicked()
 		}
+	}
+
+	private fun getBuildingIcon(type: Int): BitmapDescriptor? {
+		val vectorResId = when (type) {
+			DORM -> R.drawable.ic_dorm
+			STUDY -> R.drawable.ic_study
+			LIBRARY -> R.drawable.ic_library
+			SPORT -> R.drawable.ic_sport
+			PARKING -> R.drawable.ic_parking
+			FOOD -> R.drawable.ic_food
+			else -> return null
+		}
+		val vectorDrawable = ContextCompat.getDrawable(requireContext(), vectorResId)
+
+		vectorDrawable?.setBounds(
+			0,
+			0,
+			vectorDrawable.intrinsicWidth,
+			vectorDrawable.intrinsicHeight
+		)
+		val bitmap = Bitmap.createBitmap(
+			vectorDrawable?.intrinsicWidth ?: 0,
+			vectorDrawable?.intrinsicHeight ?: 0,
+			Bitmap.Config.ARGB_8888
+		)
+		val canvas = Canvas(bitmap)
+		vectorDrawable?.draw(canvas)
+
+		val resizedBitmap = Bitmap.createScaledBitmap(
+			bitmap, BUILDINGS_ICON_SIZE, BUILDINGS_ICON_SIZE, false
+		)
+
+		return BitmapDescriptorFactory.fromBitmap(resizedBitmap)
 	}
 
 	private fun onBuildingClicked(layer: GeoJsonLayer? = null) {
@@ -279,13 +322,13 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		}
 	}
 
-	private fun loadBottomSheet(building: Building) {
-		if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_HIDDEN)
-			bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+	private fun loadBottomSheet(building: Building?) {
+		if (bottomSheetBehavior.state == STATE_HIDDEN)
+			bottomSheetBehavior.state = STATE_COLLAPSED
 
-		Glide.with(requireContext()).load(building.imageUrl).into(ivBuilding)
-		tvAppBar.text = building.name
-		tvSheet.text = building.name
+		Glide.with(requireContext()).load(building?.imageUrl).into(ivBuilding)
+		tvAppBar.text = building?.name
+		tvSheet.text = building?.name
 	}
 
 	private fun moveCameraToLocation(pos: LatLng = LatLng(42.38695, -72.5231)) {

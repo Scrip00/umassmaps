@@ -7,6 +7,8 @@ object Constants {
 
 	const val MAP_ZOOM = 15f
 
+	const val BUILDINGS_ICON_SIZE = 80
+
 	const val STRING_COMPARISON_PRECISION = 0.4f
 
 	const val SEARCH_DELAY = 500L
