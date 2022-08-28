@@ -43,6 +43,7 @@ import com.scrip0.umassmaps.ui.viewmodels.MainViewModel
 import com.scrip0.umassmaps.utils.SearchUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_map.*
+import kotlinx.android.synthetic.main.sort_option.view.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
@@ -69,6 +70,7 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		mapView.onCreate(savedInstanceState)
 
 		setupBottomSheet()
+		setupSortOptions()
 
 		mapView.getMapAsync {
 			map = it
@@ -110,6 +112,15 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 				viewModel.sortBuildings(null)
 				viewModel.sortType = null
 			}
+		}
+	}
+
+	private fun setupSortOptions() {
+		val sortTypes = requireContext().resources.getStringArray(R.array.filter_options)
+		for (type in sortTypes) {
+			val sortOption = View.inflate(requireContext(), R.layout.sort_option, null)
+			sortOption.tvType.text = type
+			sortOptions.addView(sortOption)
 		}
 	}
 

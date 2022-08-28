@@ -1,8 +1,9 @@
 <resources>
-    <string name="app_name">Umass Maps</string>
+    <string name="app_name">UMass Maps</string>
     <string name="title_activity_maps">MapsActivity</string>
 
     <string-array name="filter_options">
+        <item>All</item>
         <item>Dorms</item>
         <item>Study places</item>
         <item>Libraries</item>

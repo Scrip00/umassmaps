@@ -18,6 +18,18 @@ data class Building(
 	override fun equals(other: Any?): Boolean {
 		return super.hashCode() == other.hashCode()
 	}
+
+	override fun hashCode(): Int {
+		var result = id.hashCode()
+		result = 31 * result + latitude.hashCode()
+		result = 31 * result + longitude.hashCode()
+		result = 31 * result + name.hashCode()
+		result = 31 * result + imageUrl.hashCode()
+		result = 31 * result + description.hashCode()
+		result = 31 * result + type
+		result = 31 * result + shape.hashCode()
+		return result
+	}
 }
 
 object Type {
