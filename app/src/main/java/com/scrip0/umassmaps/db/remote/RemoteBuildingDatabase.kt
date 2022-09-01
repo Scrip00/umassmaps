@@ -1,12 +1,10 @@
 package com.scrip0.umassmaps.db.remote
 
-import androidx.lifecycle.MutableLiveData
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.toObject
 import com.scrip0.umassmaps.db.entities.Building
 import com.scrip0.umassmaps.other.Constants.BUILDING_COLLECTION
 import com.scrip0.umassmaps.other.Resource
-import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 
 class RemoteBuildingDatabase @Inject constructor(

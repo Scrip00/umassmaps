@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
+import android.widget.ImageView
 import android.widget.SearchView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -39,6 +40,7 @@ import com.scrip0.umassmaps.other.Constants.BUILDINGS_ICON_SIZE
 import com.scrip0.umassmaps.other.Constants.MAP_ZOOM
 import com.scrip0.umassmaps.other.Constants.SEARCH_DELAY
 import com.scrip0.umassmaps.other.Status
+import com.scrip0.umassmaps.other.setMargins
 import com.scrip0.umassmaps.ui.viewmodels.MainViewModel
 import com.scrip0.umassmaps.utils.SearchUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -71,57 +73,98 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 
 		setupBottomSheet()
 		setupSortOptions()
+		setupStatusBar()
 
 		mapView.getMapAsync {
 			map = it
 			moveCameraToLocation()
 			subscribeToObservers()
 		}
+	}
 
-		spFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-			override fun onItemSelected(p0: AdapterView<*>?, p1: View?, pos: Int, p3: Long) {
-				when (pos) {
-					0 -> {
-						viewModel.sortBuildings(DORM)
-						viewModel.sortType = DORM
-					}
-					1 -> {
-						viewModel.sortBuildings(STUDY)
-						viewModel.sortType = STUDY
-					}
-					2 -> {
-						viewModel.sortBuildings(LIBRARY)
-						viewModel.sortType = LIBRARY
-					}
-					3 -> {
-						viewModel.sortBuildings(FOOD)
-						viewModel.sortType = FOOD
-					}
-					4 -> {
-						viewModel.sortBuildings(SPORT)
-						viewModel.sortType = SPORT
-					}
-					5 -> {
-						viewModel.sortBuildings(PARKING)
-						viewModel.sortType = PARKING
-					}
-				}
-			}
-
-			override fun onNothingSelected(p0: AdapterView<*>?) {
-				viewModel.sortBuildings(null)
-				viewModel.sortType = null
-			}
+	private fun setupStatusBar() {
+		var result = 0
+		val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+		if (resourceId > 0) {
+			result = resources.getDimensionPixelSize(resourceId)
 		}
+		searchViewLayout.setMargins(
+			top = result + 50
+		)
 	}
 
 	private fun setupSortOptions() {
-		val sortTypes = requireContext().resources.getStringArray(R.array.filter_options)
-		for (type in sortTypes) {
+		class SortOptionsManager {
+			private var curOption: View? = null
+
+			fun selectOption(view: View) {
+				curOption?.tvType?.setTextColor(
+					ContextCompat.getColor(
+						requireContext(),
+						R.color.gray
+					)
+				)
+
+				curOption?.background =
+					ContextCompat.getDrawable(requireContext(), R.drawable.sort_option_bg)
+
+				curOption = view
+
+				curOption?.tvType?.setTextColor(
+					ContextCompat.getColor(
+						requireContext(),
+						R.color.white
+					)
+				)
+
+				curOption?.background =
+					ContextCompat.getDrawable(
+						requireContext(),
+						R.drawable.sort_option_bg_highlighted
+					)
+			}
+		}
+		sortOptions.dividerPadding = 100
+		val sortTypes = HashMap<String, Int>()
+		sortTypes["All"] = -1
+		sortTypes["Dorms"] = DORM
+		sortTypes["Study places"] = STUDY
+		sortTypes["Libraries"] = LIBRARY
+		sortTypes["Food"] = FOOD
+		sortTypes["Sport"] = SPORT
+		sortTypes["Parking"] = PARKING
+
+		sortOptions.addView(ImageView(context))
+
+		val sortOptionsManager = SortOptionsManager()
+
+		for (type in sortTypes.keys) {
 			val sortOption = View.inflate(requireContext(), R.layout.sort_option, null)
 			sortOption.tvType.text = type
+
+			val resId = Building.getBuildingIcon(sortTypes[type])
+			if (resId != -1) {
+				sortOption.ivIcon.setImageResource(resId)
+				sortOption.setOnClickListener {
+					sortOptionsManager.selectOption(sortOption)
+					viewModel.sortBuildings(sortTypes[type])
+					viewModel.sortType = sortTypes[type]
+				}
+			} else {
+				sortOption.ivIcon.visibility = View.GONE
+				sortOption.setOnClickListener {
+					sortOptionsManager.selectOption(sortOption)
+					viewModel.sortBuildings(null)
+					viewModel.sortType = null
+				}
+			}
+
 			sortOptions.addView(sortOption)
+
+			if (resId == -1) sortOptionsManager.selectOption(sortOption)
 		}
+
+		sortOptions.addView(ImageView(context))
 	}
 
 	private fun setupSearch() {
@@ -285,15 +328,9 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 	}
 
 	private fun getBuildingIcon(type: Int): BitmapDescriptor? {
-		val vectorResId = when (type) {
-			DORM -> R.drawable.ic_dorm
-			STUDY -> R.drawable.ic_study
-			LIBRARY -> R.drawable.ic_library
-			SPORT -> R.drawable.ic_sport
-			PARKING -> R.drawable.ic_parking
-			FOOD -> R.drawable.ic_food
-			else -> return null
-		}
+
+		val vectorResId = Building.getBuildingIcon(type)
+		if (vectorResId == -1) return null
 		val vectorDrawable = ContextCompat.getDrawable(requireContext(), vectorResId)
 
 		vectorDrawable?.setBounds(

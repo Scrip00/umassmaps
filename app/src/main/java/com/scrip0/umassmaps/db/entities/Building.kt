@@ -1,7 +1,9 @@
 package com.scrip0.umassmaps.db.entities
 
+import android.view.View
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.scrip0.umassmaps.R
 
 @Entity(tableName = "building_table")
 data class Building(
@@ -15,6 +17,21 @@ data class Building(
 	val type: Int = 0,
 	val shape: String = ""
 ) {
+	companion object {
+		fun getBuildingIcon(id: Int?): Int {
+			id ?: return -1
+			return when (id) {
+				Type.DORM -> R.drawable.ic_dorm
+				Type.STUDY -> R.drawable.ic_study
+				Type.LIBRARY -> R.drawable.ic_library
+				Type.SPORT -> R.drawable.ic_sport
+				Type.PARKING -> R.drawable.ic_parking
+				Type.FOOD -> R.drawable.ic_food
+				else -> return -1
+			}
+		}
+	}
+
 	override fun equals(other: Any?): Boolean {
 		return super.hashCode() == other.hashCode()
 	}

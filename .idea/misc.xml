@@ -3,6 +3,13 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/Scrip0/Desktop/Internships/UMass Maps/app/src/main/res/drawable/empty_linear_layout_divider.xml" value="0.3155" />
+        <entry key="..\:/Users/Scrip0/Desktop/Internships/UMass Maps/app/src/main/res/drawable/rounder.xml" value="0.3165" />
+        <entry key="..\:/Users/Scrip0/Desktop/Internships/UMass Maps/app/src/main/res/drawable/search_layout_bg.xml" value="0.3165" />
+        <entry key="..\:/Users/Scrip0/Desktop/Internships/UMass Maps/app/src/main/res/drawable/sort_option_bg.xml" value="0.3165" />
+        <entry key="..\:/Users/Scrip0/Desktop/Internships/UMass Maps/app/src/main/res/drawable/sort_option_bg_highlighted.xml" value="0.3165" />
+        <entry key="..\:/Users/Scrip0/Desktop/Internships/UMass Maps/app/src/main/res/layout/fragment_map.xml" value="0.2749094202898551" />
+        <entry key="..\:/Users/Scrip0/Desktop/Internships/UMass Maps/app/src/main/res/layout/sort_option.xml" value="0.31354166666666666" />
         <entry key="..\:/Users/Scrip0/Desktop/Internships/UmassMaps/app/src/main/res/drawable/ic_baseline_remove_24.xml" value="0.1605" />
         <entry key="..\:/Users/Scrip0/Desktop/Internships/UmassMaps/app/src/main/res/drawable/rounder.xml" value="0.1605" />
         <entry key="..\:/Users/Scrip0/Desktop/Internships/UmassMaps/app/src/main/res/drawable/search_layout_bg.xml" value="0.1605" />

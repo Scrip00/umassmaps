@@ -2,7 +2,6 @@ package com.scrip0.umassmaps.repositories
 
 import androidx.lifecycle.MutableLiveData
 import com.scrip0.umassmaps.db.entities.Building
-import com.scrip0.umassmaps.db.entities.Type
 import com.scrip0.umassmaps.db.local.LocalBuildingDao
 import com.scrip0.umassmaps.db.remote.RemoteBuildingDatabase
 import com.scrip0.umassmaps.other.Resource
@@ -19,8 +18,10 @@ class BuildingRepository @Inject constructor(
 		updateData(list)
 	}
 
-	fun subscribeToReaTimeUpdates() =
-		remoteBuildingDatabase.subscribeToReaTimeUpdates(dataUpdated)
+	fun subscribeToReaTimeUpdates() {
+	remoteBuildingDatabase.subscribeToReaTimeUpdates(dataUpdated)
+	}
+
 
 	suspend fun upsertBuildingLocal(building: Building) = localBuildingDao.upsertBuilding(building)
 
