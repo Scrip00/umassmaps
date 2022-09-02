@@ -12,4 +12,6 @@ object Constants {
 	const val STRING_COMPARISON_PRECISION = 0.4f
 
 	const val SEARCH_DELAY = 500L
+
+	const val CIRCULAR_ANIM_DURATION = 400L
 }

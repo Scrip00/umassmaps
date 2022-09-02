@@ -1,9 +1,12 @@
 package com.scrip0.umassmaps.ui
 
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.fragment.NavHostFragment
 import com.scrip0.umassmaps.R
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.android.synthetic.main.fragment_map.*
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -12,4 +15,17 @@ class MainActivity : AppCompatActivity() {
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_main)
 	}
+
+	override fun onBackPressed() {
+		val fragment =
+			this.supportFragmentManager.findFragmentById(R.id.navHostFragment) as? NavHostFragment
+		val currentFragment =
+			fragment?.childFragmentManager?.fragments?.get(0) as? IOnBackPressed
+		currentFragment?.onBackPressed()?.takeIf { !it }
+			?.let { super.onBackPressed() }
+	}
+}
+
+interface IOnBackPressed {
+	fun onBackPressed(): Boolean
 }

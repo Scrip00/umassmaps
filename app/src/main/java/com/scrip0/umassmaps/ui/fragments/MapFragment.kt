@@ -1,15 +1,22 @@
 package com.scrip0.umassmaps.ui.fragments
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.annotation.SuppressLint
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
-import android.widget.AdapterView
+import android.view.ViewAnimationUtils
+import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.ImageView
 import android.widget.SearchView
 import android.widget.Toast
+import androidx.activity.addCallback
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -30,6 +37,7 @@ import com.google.maps.android.data.geojson.GeoJsonLayer
 import com.scrip0.umassmaps.R
 import com.scrip0.umassmaps.adapters.SearchResultsAdapter
 import com.scrip0.umassmaps.db.entities.Building
+import com.scrip0.umassmaps.db.entities.Pair
 import com.scrip0.umassmaps.db.entities.Type.DORM
 import com.scrip0.umassmaps.db.entities.Type.FOOD
 import com.scrip0.umassmaps.db.entities.Type.LIBRARY
@@ -37,13 +45,17 @@ import com.scrip0.umassmaps.db.entities.Type.PARKING
 import com.scrip0.umassmaps.db.entities.Type.SPORT
 import com.scrip0.umassmaps.db.entities.Type.STUDY
 import com.scrip0.umassmaps.other.Constants.BUILDINGS_ICON_SIZE
+import com.scrip0.umassmaps.other.Constants.CIRCULAR_ANIM_DURATION
 import com.scrip0.umassmaps.other.Constants.MAP_ZOOM
 import com.scrip0.umassmaps.other.Constants.SEARCH_DELAY
 import com.scrip0.umassmaps.other.Status
 import com.scrip0.umassmaps.other.setMargins
+import com.scrip0.umassmaps.other.toDps
+import com.scrip0.umassmaps.ui.IOnBackPressed
 import com.scrip0.umassmaps.ui.viewmodels.MainViewModel
 import com.scrip0.umassmaps.utils.SearchUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.android.synthetic.main.building_bottom_sheet.*
 import kotlinx.android.synthetic.main.fragment_map.*
 import kotlinx.android.synthetic.main.sort_option.view.*
 import kotlinx.coroutines.Job
@@ -51,29 +63,31 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import kotlin.math.max
 
 
 @AndroidEntryPoint
-class MapFragment : Fragment(R.layout.fragment_map) {
+class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 
 	private var map: GoogleMap? = null
 
 	private val viewModel: MainViewModel by viewModels()
 
-	private var clicked: GeoJsonLayer? = null
+	private var clicked: Pair<GeoJsonLayer?, Marker?> = Pair(null, null)
 
-	private lateinit var bottomSheetBehavior: BottomSheetBehavior<View>
+	private lateinit var bottomSheetBehavior: BottomSheetBehavior<ConstraintLayout>
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
 
-		bottomSheetBehavior = BottomSheetBehavior.from(buildingInfoSheet)
+		bottomSheetBehavior = BottomSheetBehavior.from(buildingBottomSheet)
 
 		mapView.onCreate(savedInstanceState)
 
 		setupBottomSheet()
 		setupSortOptions()
 		setupStatusBar()
+		setupSearchView()
 
 		mapView.getMapAsync {
 			map = it
@@ -89,8 +103,110 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			result = resources.getDimensionPixelSize(resourceId)
 		}
 		searchViewLayout.setMargins(
-			top = result + 50
+			top = result + 16.toDps(view)
 		)
+
+		val topMargin = 32.toDps(view)
+
+		appBar.layoutParams = CoordinatorLayout.LayoutParams(
+			Resources.getSystem().displayMetrics.widthPixels,
+			result + topMargin
+		)
+		tvAppBar.setMargins(top = result + topMargin / 2)
+	}
+
+	private fun setupSearchView() {
+		rvSearchResults.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
+			override fun onGlobalLayout() {
+				rvSearchResults.viewTreeObserver.removeOnGlobalLayoutListener(this)
+				rvSearchResults.setMargins(top = searchViewLayout.bottom + 16.toDps(view))
+				val closeButtonId =
+					searchView.context.resources.getIdentifier(
+						"android:id/search_close_btn",
+						null,
+						null
+					)
+				val closeButton = searchView.findViewById(closeButtonId) as ImageView
+				closeButton.visibility = View.GONE
+			}
+		})
+
+		searchView.isFocusable = true
+		searchView.isIconified = false
+		searchView.clearFocus()
+
+		searchView.setOnCloseListener {
+			searchViewFocusChanged(false)
+			true
+		}
+
+		searchView.setOnQueryTextFocusChangeListener { _, isOpen ->
+			if (isOpen) {
+				searchViewFocusChanged(true)
+			}
+		}
+
+//		setEventListener(
+//			requireActivity(),
+//			KeyboardVisibilityEventListener { isOpen ->
+//				if (!isOpen) {
+//					searchView.clearFocus()
+//					closeButton.visibility = View.GONE
+//					searchViewFocusChanged(false)
+//				}
+//			})
+	}
+
+	private fun searchViewFocusChanged(isOpen: Boolean) {
+		val closeButtonId =
+			searchView.context.resources.getIdentifier("android:id/search_close_btn", null, null)
+		val closeButton = searchView.findViewById(closeButtonId) as ImageView
+		closeButton.visibility = View.GONE
+
+		val cx = (searchViewLayout.right + searchViewLayout.left) / 2
+		val cy = (searchViewLayout.top + searchViewLayout.bottom) / 2
+
+		val finalRadius = max(searchResultsView.width, searchResultsView.height)
+
+		if (isOpen) {
+			closeButton.visibility = View.VISIBLE
+			val circularReveal = ViewAnimationUtils.createCircularReveal(
+				searchResultsView,
+				cx,
+				cy, 0f,
+				finalRadius.toFloat()
+			)
+
+			circularReveal.duration = CIRCULAR_ANIM_DURATION
+			searchResultsView.visibility = View.VISIBLE
+			circularReveal.start()
+		} else {
+			searchView.clearFocus()
+			closeButton.visibility = View.GONE
+			val circularReveal = ViewAnimationUtils.createCircularReveal(
+				searchResultsView,
+				cx,
+				cy,
+				finalRadius.toFloat(), 0f
+			)
+
+			circularReveal.addListener(object : AnimatorListenerAdapter() {
+				override fun onAnimationEnd(animation: Animator?) {
+					super.onAnimationEnd(animation)
+					searchResultsView.visibility = View.INVISIBLE
+				}
+			})
+
+			circularReveal.duration = CIRCULAR_ANIM_DURATION
+			circularReveal.start()
+		}
+	}
+
+	override fun onBackPressed(): Boolean {
+		return if (searchResultsView.visibility == View.VISIBLE) {
+			searchViewFocusChanged(false)
+			true
+		} else false
 	}
 
 	private fun setupSortOptions() {
@@ -200,23 +316,26 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 	}
 
 	private fun setupBottomSheet() {
+		val bottomSheetView = buildingBottomSheet
+		bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetView)
+
 		appBar.alpha = 0f
-		appBarLayout.visibility = View.GONE
+		appBar.visibility = View.GONE
 		bottomSheetBehavior.addBottomSheetCallback(object :
 			BottomSheetBehavior.BottomSheetCallback() {
 			override fun onStateChanged(bottomSheet: View, newState: Int) {
 				when (newState) {
 					STATE_HIDDEN -> {
-						appBarLayout.visibility = View.GONE
+						appBar.visibility = View.GONE
 						onBuildingClicked()
 					}
-					STATE_COLLAPSED -> appBarLayout.visibility = View.VISIBLE
+					STATE_COLLAPSED -> appBar.visibility = View.VISIBLE
 				}
 			}
 
 			override fun onSlide(bottomSheet: View, slideOffset: Float) {
 				appBar.alpha = slideOffset
-				ivBuilding.y = appBar.height * slideOffset
+				bsView.y = appBar.height * slideOffset
 			}
 		})
 
@@ -307,16 +426,16 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 			layer.setOnFeatureClickListener {
 				marker.showInfoWindow()
 				loadBottomSheet(building)
-				onBuildingClicked(layer)
+				onBuildingClicked(layer, marker)
 			}
 		}
 
-		markerCollection.setOnMarkerClickListener {
-			val layer = hashMap[it]
+		markerCollection.setOnMarkerClickListener { marker ->
+			val layer = hashMap[marker]
 			layer?.apply {
-				onBuildingClicked(layer)
+				onBuildingClicked(layer, marker)
 				loadBottomSheet(list?.find { building ->
-					building.id == markerIdMap[it.id]
+					building.id == markerIdMap[marker.id]
 				})
 			}
 			false
@@ -354,20 +473,25 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		return BitmapDescriptorFactory.fromBitmap(resizedBitmap)
 	}
 
-	private fun onBuildingClicked(layer: GeoJsonLayer? = null) {
-		if (clicked?.equals(layer) == true) return
+	private fun onBuildingClicked(layer: GeoJsonLayer? = null, marker: Marker? = null) {
+		if (clicked.first?.equals(layer) == true) return
 
-		clicked?.apply {
+		clicked.first?.apply {
 			defaultPolygonStyle.apply {
 				fillColor = Color.GRAY
 			}
 		}
-		clicked = layer
-		clicked?.apply {
+		clicked.first = layer
+		clicked.first?.apply {
 			defaultPolygonStyle.apply {
 				fillColor = Color.RED
 			}
 		}
+
+		clicked.second?.hideInfoWindow()
+		clicked.second = marker
+
+		layer ?: run { bottomSheetBehavior.state = STATE_HIDDEN }
 	}
 
 	private fun loadBottomSheet(building: Building?) {
@@ -377,6 +501,7 @@ class MapFragment : Fragment(R.layout.fragment_map) {
 		Glide.with(requireContext()).load(building?.imageUrl).into(ivBuilding)
 		tvAppBar.text = building?.name
 		tvSheet.text = building?.name
+		tvDescription.text = building?.description
 	}
 
 	private fun moveCameraToLocation(pos: LatLng = LatLng(42.38695, -72.5231)) {
