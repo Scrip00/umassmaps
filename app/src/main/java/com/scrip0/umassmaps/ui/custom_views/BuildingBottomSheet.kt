@@ -13,8 +13,4 @@ class BuildingBottomSheet : BottomSheetDialogFragment() {
 		container: ViewGroup?,
 		savedInstanceState: Bundle?
 	): View? = inflater.inflate(R.layout.building_bottom_sheet, container, false)
-
-	companion object {
-        const val TAG = "BuildingBottomSheet"
-    }
 }

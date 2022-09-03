@@ -2,7 +2,6 @@ package com.scrip0.umassmaps.db.local
 
 import androidx.room.*
 import com.scrip0.umassmaps.db.entities.Building
-import com.scrip0.umassmaps.db.entities.Type
 import kotlinx.coroutines.flow.Flow
 
 @Dao

@@ -1,6 +1,5 @@
 package com.scrip0.umassmaps.db.entities
 
-import android.view.View
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.scrip0.umassmaps.R

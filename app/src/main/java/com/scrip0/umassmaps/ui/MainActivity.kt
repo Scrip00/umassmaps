@@ -1,12 +1,10 @@
 package com.scrip0.umassmaps.ui
 
 import android.os.Bundle
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.fragment.NavHostFragment
 import com.scrip0.umassmaps.R
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.android.synthetic.main.fragment_map.*
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {

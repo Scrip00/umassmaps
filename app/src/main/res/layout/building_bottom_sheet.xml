@@ -22,9 +22,9 @@
 
 
             <ScrollView
+                android:id="@+id/bsView"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:id="@+id/bsView">
+                android:layout_height="match_parent">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -49,11 +49,19 @@
             </ScrollView>
 
             <ImageView
-                android:layout_width="70dp"
-                android:layout_height="wrap_content"
+                android:id="@+id/ivGradient"
+                android:layout_width="match_parent"
+                android:layout_height="100dp"
+                android:background="@drawable/bottom_sheet_image_gradient" />
+
+            <ImageView
+                android:layout_width="60dp"
+                android:layout_height="8dp"
                 android:layout_gravity="center|top"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_baseline_remove_24" />
+                android:layout_marginTop="12dp"
+                android:adjustViewBounds="true"
+                android:scaleType="fitXY"
+                android:src="@drawable/ic_bottom_sheet_outline" />
 
             <TextView
                 android:id="@+id/tvSheet"
@@ -63,7 +71,7 @@
                 android:layout_marginTop="30dp"
                 android:text="Name"
                 android:textAppearance="@style/TextAppearance.AppCompat.Title"
-                android:textColor="@color/black" />
+                android:textColor="@color/gray" />
         </FrameLayout>
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>

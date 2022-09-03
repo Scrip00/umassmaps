@@ -8,13 +8,13 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.ViewAnimationUtils
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.ImageView
 import android.widget.SearchView
 import android.widget.Toast
-import androidx.activity.addCallback
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
@@ -46,6 +46,8 @@ import com.scrip0.umassmaps.db.entities.Type.SPORT
 import com.scrip0.umassmaps.db.entities.Type.STUDY
 import com.scrip0.umassmaps.other.Constants.BUILDINGS_ICON_SIZE
 import com.scrip0.umassmaps.other.Constants.CIRCULAR_ANIM_DURATION
+import com.scrip0.umassmaps.other.Constants.MAP_BUILDING_ZOOM
+import com.scrip0.umassmaps.other.Constants.MAP_CAMERA_ZOOM_DURATION
 import com.scrip0.umassmaps.other.Constants.MAP_ZOOM
 import com.scrip0.umassmaps.other.Constants.SEARCH_DELAY
 import com.scrip0.umassmaps.other.Status
@@ -58,10 +60,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.building_bottom_sheet.*
 import kotlinx.android.synthetic.main.fragment_map.*
 import kotlinx.android.synthetic.main.sort_option.view.*
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.json.JSONObject
 import kotlin.math.max
 
@@ -77,6 +76,8 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 
 	private lateinit var bottomSheetBehavior: BottomSheetBehavior<ConstraintLayout>
 
+	private var buildingToLayerMap: HashMap<Building, Pair<GeoJsonLayer, Marker>> = HashMap()
+
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
 
@@ -87,7 +88,14 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 		setupBottomSheet()
 		setupSortOptions()
 		setupStatusBar()
-		setupSearchView()
+		searchView.addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
+			override fun onLayoutChange(
+				p0: View?, p1: Int, p2: Int, p3: Int, p4: Int, p5: Int, p6: Int, p7: Int, p8: Int
+			) {
+				searchView.removeOnLayoutChangeListener(this)
+				setupSearchView()
+			}
+		})
 
 		mapView.getMapAsync {
 			map = it
@@ -106,13 +114,13 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 			top = result + 16.toDps(view)
 		)
 
-		val topMargin = 32.toDps(view)
+		val topMargin = 64.toDps(view)
 
 		appBar.layoutParams = CoordinatorLayout.LayoutParams(
 			Resources.getSystem().displayMetrics.widthPixels,
 			result + topMargin
 		)
-		tvAppBar.setMargins(top = result + topMargin / 2)
+		tvAppBar.setMargins(top = result + topMargin / 3)
 	}
 
 	private fun setupSearchView() {
@@ -143,18 +151,9 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 		searchView.setOnQueryTextFocusChangeListener { _, isOpen ->
 			if (isOpen) {
 				searchViewFocusChanged(true)
+				bottomSheetBehavior.state = STATE_HIDDEN
 			}
 		}
-
-//		setEventListener(
-//			requireActivity(),
-//			KeyboardVisibilityEventListener { isOpen ->
-//				if (!isOpen) {
-//					searchView.clearFocus()
-//					closeButton.visibility = View.GONE
-//					searchViewFocusChanged(false)
-//				}
-//			})
 	}
 
 	private fun searchViewFocusChanged(isOpen: Boolean) {
@@ -293,6 +292,15 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 		val list = viewModel.buildingsLiveData.value?.data
 		var job: Job? = null
 
+		searchResultsAdapter.setOnItemClickListener { building ->
+			searchViewFocusChanged(false)
+			onBuildingClicked(
+				buildingToLayerMap[building]?.first,
+				buildingToLayerMap[building]?.second
+			)
+			loadBottomSheet(building)
+		}
+
 		searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
 			override fun onQueryTextSubmit(query: String?): Boolean {
 				search(query)
@@ -309,8 +317,12 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 			}
 
 			fun search(query: String?) {
-				val searchResults = SearchUtils.searchForWordOccurrence(query, list)
-				if (searchResults != null) searchResultsAdapter.submitList(searchResults)
+				CoroutineScope(Dispatchers.Default).launch {
+					val searchResults = SearchUtils.searchForWordOccurrence(query, list)
+					withContext(Dispatchers.Main) {
+						searchResultsAdapter.submitList(searchResults)
+					}
+				}
 			}
 		})
 	}
@@ -336,6 +348,8 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 			override fun onSlide(bottomSheet: View, slideOffset: Float) {
 				appBar.alpha = slideOffset
 				bsView.y = appBar.height * slideOffset
+				tvSheet.alpha = 1.0f - slideOffset
+				ivGradient.alpha = 1.0f - slideOffset
 			}
 		})
 
@@ -372,6 +386,7 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 	@SuppressLint("PotentialBehaviorOverride")
 	private fun addAllBuildings(list: List<Building>?) {
 		map?.clear()
+		buildingToLayerMap.clear()
 
 		val markerManager = MarkerManager(map)
 		val groundOverlayManager = GroundOverlayManager(map!!)
@@ -428,6 +443,8 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 				loadBottomSheet(building)
 				onBuildingClicked(layer, marker)
 			}
+
+			buildingToLayerMap[building] = Pair(layer, marker)
 		}
 
 		markerCollection.setOnMarkerClickListener { marker ->
@@ -490,6 +507,9 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 
 		clicked.second?.hideInfoWindow()
 		clicked.second = marker
+		clicked.second?.showInfoWindow()
+
+		moveCameraToBuilding(marker?.position?.latitude, marker?.position?.longitude)
 
 		layer ?: run { bottomSheetBehavior.state = STATE_HIDDEN }
 	}
@@ -504,12 +524,22 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 		tvDescription.text = building?.description
 	}
 
+	private fun moveCameraToBuilding(latitude: Double?, longitude: Double?) {
+		if (latitude == null || longitude == null) return
+		map?.animateCamera(
+			CameraUpdateFactory.newLatLngZoom(
+				LatLng(latitude, longitude),
+				MAP_BUILDING_ZOOM
+			), MAP_CAMERA_ZOOM_DURATION, null
+		)
+	}
+
 	private fun moveCameraToLocation(pos: LatLng = LatLng(42.38695, -72.5231)) {
 		map?.animateCamera(
 			CameraUpdateFactory.newLatLngZoom(
 				pos,
-				MAP_ZOOM
-			)
+				MAP_ZOOM,
+			), MAP_CAMERA_ZOOM_DURATION, null
 		)
 	}
 
