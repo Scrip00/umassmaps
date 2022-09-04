@@ -68,7 +68,7 @@ import kotlin.math.max
 @AndroidEntryPoint
 class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 
-	private var map: GoogleMap? = null
+	private lateinit var map: GoogleMap
 
 	private val viewModel: MainViewModel by viewModels()
 
@@ -99,8 +99,43 @@ class MapFragment : Fragment(R.layout.fragment_map), IOnBackPressed {
 
 		mapView.getMapAsync {
 			map = it
+			map.isMyLocationEnabled = true
 			moveCameraToLocation()
 			subscribeToObservers()
+		}
+
+		viewModel.getDirections(LatLng(42.38709, -72.53164), LatLng(42.3974095, -72.521414))
+
+
+		viewModel.directionsLiveData.observe(viewLifecycleOwner) { result ->
+			when (result.status) {
+				Status.SUCCESS -> {
+					result.data?.let { response ->
+						Log.d(
+							"Path",
+							response.features[0].geometry.coordinates.toString()
+						)
+						val list = response.features[0].geometry.coordinates.map { LatLng(it[1], it[0]) }
+
+						val polylineOptions = PolylineOptions()
+							.color(Color.RED)
+							.width(8f)
+							.addAll(list)
+						map.addPolyline(polylineOptions)
+
+					}
+				}
+				Status.ERROR -> {
+					Toast.makeText(
+						context,
+						"Cannot load the data: ${result.message}",
+						Toast.LENGTH_LONG
+					).show()
+				}
+				Status.LOADING -> {
+
+				}
+			}
 		}
 	}
 

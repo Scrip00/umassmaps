@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.google.firebase.firestore.FirebaseFirestore
 import com.scrip0.umassmaps.db.local.LocalBuildingDatabase
 import com.scrip0.umassmaps.other.Constants.LOCAL_BUILDING_DATABASE_NAME
+import com.scrip0.umassmaps.repositories.DirectionsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,4 +34,8 @@ object AppModule {
 	@Singleton
 	@Provides
 	fun provideFirebaseFirestore() = FirebaseFirestore.getInstance()
+
+	@Singleton
+	@Provides
+	fun providesDirectionsRepository() = DirectionsRepository()
 }

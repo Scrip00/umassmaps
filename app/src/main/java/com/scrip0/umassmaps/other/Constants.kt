@@ -18,4 +18,7 @@ object Constants {
 	const val SEARCH_DELAY = 500L
 
 	const val CIRCULAR_ANIM_DURATION = 400L
+
+	const val BASE_URL = "https://api.openrouteservice.org/"
+	const val API_KEY = "5b3ce3597851110001cf6248f11747cc031c46f19d56ef9bc0c223e6"
 }
